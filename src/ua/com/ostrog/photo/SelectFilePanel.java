@@ -23,7 +23,7 @@ public class SelectFilePanel extends JPanel {
 
 	private File file = null;
 	private File[] selectedFiles = null;
-	private JButton buttonSelectFiles = new JButton("Select file");
+	private JButton buttonSelectFiles = new JButton("Select directory/files");
 	private JTextField fieldFleName = new JTextField();
 	private TitledBorder border = (TitledBorder) BorderFactory
 			.createTitledBorder("Select dir/files");
@@ -65,7 +65,7 @@ public class SelectFilePanel extends JPanel {
 		}
 	}
 
-	void  openFiles() {
+	void openFiles() {
 		JFileChooser open = new JFileChooser();
 		open.setDialogTitle("Open source dir/files ");
 		open.setDialogType(JFileChooser.OPEN_DIALOG);
@@ -73,7 +73,13 @@ public class SelectFilePanel extends JPanel {
 		open.setEnabled(true);
 		open.setMultiSelectionEnabled(multiSelectionEnabled);
 		open.setFileSelectionMode(fileSelectionMode);
-		if (file != null) {
+		if (this.fieldFleName.getText() != null) {
+			String s = this.fieldFleName.getText();
+			File fileTemp = new File(s);
+			if (fileTemp.exists()) {
+				open.setSelectedFile(fileTemp);
+			}
+		} else if (file != null) {
 			if (file.isDirectory()) {
 				if (file.exists()) {
 					open.setCurrentDirectory(file);
@@ -88,6 +94,7 @@ public class SelectFilePanel extends JPanel {
 				}
 			}
 		}
+		
 		int result = open.showOpenDialog(SwingUtilities
 				.windowForComponent(this));
 		if (result == JFileChooser.APPROVE_OPTION) {
@@ -108,13 +115,13 @@ public class SelectFilePanel extends JPanel {
 		}
 	}
 
-	public File getFile() {
+	public File getDestinationDirectory() {
 		return file;
 	}
 
-	public void setFile(File file) {
-		this.file = file;
-	}
+//	public void setFile(File file) {
+//		this.file = file;
+//	}
 
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub

@@ -1,11 +1,8 @@
 package ua.com.ostrog.photo;
 
 import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -13,25 +10,15 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
-import java.io.Writer;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.nio.file.attribute.FileTime;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.List;
+import java.util.prefs.BackingStoreException;
+import java.util.prefs.Preferences;
 
-import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JFileChooser;
 import javax.swing.JFrame;
-import javax.swing.JPanel;
 
 import org.apache.commons.imaging.Imaging;
 import org.apache.commons.imaging.common.IImageMetadata;
@@ -42,43 +29,36 @@ import org.apache.commons.imaging.formats.tiff.fieldtypes.FieldType;
 import org.apache.commons.imaging.formats.tiff.taginfos.TagInfo;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 
 public class Extractor extends JFrame {
+	private static final long serialVersionUID = -423490175756620363L;
 	private static final String EXISTS_DIR = "exists";
+	private static final String IMAGE = "IMAGE";
+	private static final String VIDEO = "video";
+	private static final String NOT_PROCESS = "None";
+	private static final String PANORAMA = "panorama";
 	
 	private static Logger logger = Logger.getLogger(Extractor.class);
-	public static final String versionOfProduct = "photo v.3.01";
+	public static final String versionOfProduct = "photo v.3.02";
 	
-	private String destination = "D:\\ourPhoto";
-	private String source = "d:\\toProcessPhoto";
+	private String destination = "";
+	private String source = "";
 	private  File existDir = null;
-	private SelectFilePanel sourcePanel = new SelectFilePanel();
-	private SelectFilePanel destinationPanel = new SelectFilePanel();
-	private JButton start = new JButton("Start");
-	private JButton analyze = new JButton("Analyze");
 	private int countCopy = 0;
 	private int countIdentical = 0;
 	private int countMistake = 0;
 	private static final String[] ignoredFileName = new String[] {"thumbs.db","picasa.ini"};
 
 	private static final String[] extensionImage = new String[] { "jpg",
-			"jpeg", "crw" };
+			"jpeg", "crw","png" };
 	private static final String[] extensionRaw = new String[] { "crw","cr2","nef" };
 
 	private static final String[] extensionVideo = new String[] { "mov", "avi",
 			"thm", "mp4","3gp","wmv" };
-	private static final String IMAGE = "IMAGE";
-	private static final String VIDEO = "video";
-	private static final String NOT_PROCESS = "None";
-	private static final String PANORAMA = "panorama";
 	private SimpleDateFormat simpleDateFormat = new SimpleDateFormat(
 			"yyyy-MM-dd");
-	private JPanel settingPanel = new JPanel();
-	private JCheckBox exifDate = new JCheckBox("Use exif date of image", false);
-	private JCheckBox moveFiles = new JCheckBox("move new files ", true);
 	private boolean useExifDate = false;
 	private List<String> filesProcessed = new ArrayList<String>();
 	private List<String> filesNew = new ArrayList<String>();
@@ -87,53 +67,42 @@ public class Extractor extends JFrame {
 	private List<String> filesWrongDate = new ArrayList<String>();
 	private StringWriter writer = null;
 	private String sMessage = null;
+	private ApplicationPanel applicationPanel = null;
 
 	public Extractor() {
-		JPanel panel = new JPanel();
-		panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-		this.sourcePanel.setDir(source);
-		this.destinationPanel.setDir(destination);
-		this.destinationPanel.setMultiSelectionEnabled(false);
-		this.destinationPanel
-				.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-		this.destinationPanel.setTitleBorder("Destination dir");
-		panel.add(sourcePanel);
-		panel.add(destinationPanel);
-		fillSettingPanel();
-		panel.add(settingPanel);
-		JPanel startPanel = new JPanel();
-		startPanel.setLayout(new BoxLayout(startPanel, BoxLayout.X_AXIS));
-		// startPanel.setAlignmentX(1f);
-		startPanel.add(analyze);
-		analyze.addActionListener(new ActionListener() {
-
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				analyze();
-
-			}
-		});
-		startPanel.add(Box.createHorizontalGlue());
-		startPanel.add(start);
-		startPanel.setBorder(BorderFactory.createTitledBorder(""));
-		panel.add(startPanel);
-		start.addActionListener(new ActionListener() {
-
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				process();
-			}
-		});
-		this.setContentPane(panel);
-		existDir = new File(source +"\\"+EXISTS_DIR);
+		restoreSavedSettings();
+		this.applicationPanel= new ApplicationPanel(source, destination, e->analyzeFiles(e), e->process(e));
+		this.setContentPane(this.applicationPanel);
 	}
 
-	protected void analyze() {
-		useExifDate = this.exifDate.isSelected();
+	private void restoreSavedSettings() {
+        Preferences prefs = Preferences.userNodeForPackage(Extractor.class);
+        // Retrieve preferences
+        this.source = prefs.get("sourceDirectory", "source");
+        this.destination = prefs.get("destinationDirectory", "destination");
+	}
+	private void writeSettings() {
+				Preferences prefs = Preferences.userNodeForPackage(Extractor.class);
+		// Store preferences
+		prefs.put("sourceDirectory", this.source);
+		prefs.put("destinationDirectory", this.destination);
+		try {
+			prefs.flush();
+		} catch (BackingStoreException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+	void analyzeFiles(ActionEvent e) {
+		message("Start analyze files");
+		useExifDate = applicationPanel.isExifDateSelected();
 		message("Start use exif date = " + useExifDate);
-		File destinationDir = this.destinationPanel.getFile();
-		File[] sourceFiles = this.sourcePanel.getSelectedFiles();
-
+		File destinationDir = applicationPanel.getDestinationDirectory();
+		destination=destinationDir.getPath();
+		File[] sourceFiles = applicationPanel.getSelectedFiles();
+		source=sourceFiles[0].getPath();
+		existDir = new File(source +File.separator+EXISTS_DIR);
 		this.filesErrors.clear();
 		this.filesNew.clear();
 		this.filesProcessed.clear();
@@ -159,22 +128,22 @@ public class Extractor extends JFrame {
 		message("wrong date  " + this.filesWrongDate.size());
 		try {
 			FileUtils
-					.writeLines(new File(source+"\\processed.lst"), this.filesProcessed);
-			FileUtils.writeLines(new File(source+"\\new.lst"), this.filesNew);
-			FileUtils.writeLines(new File(source+"\\errors.lst"), this.filesErrors);
-			FileUtils.writeLines(new File(source+"\\ignored.lst"), this.filesIgnored);
+					.writeLines(new File(source+File.separator+"processed.lst"), this.filesProcessed);
+			FileUtils.writeLines(new File(source+File.separator+"new.lst"), this.filesNew);
+			FileUtils.writeLines(new File(source+File.separator+"errors.lst"), this.filesErrors);
+			FileUtils.writeLines(new File(source+File.separator+"ignored.lst"), this.filesIgnored);
 			if (this.filesWrongDate.size()>0){
 				this.filesWrongDate.add(0, "EXIF DATE  FILE DATE             FILE ");
 			}
-			FileUtils.writeLines(new File(source+"\\wrongDate.lst"), this.filesWrongDate);
+			FileUtils.writeLines(new File(source+File.separator+"wrongDate.lst"), this.filesWrongDate);
 			IOUtils.writeLines(this.filesProcessed,"\n" , writer);
 			writer.write("  New \n");
 			IOUtils.writeLines(this.filesNew, "\n", writer);
 			sMessage= writer.toString();
 			writer.close();
 			
-		} catch (IOException e) {
-			e.printStackTrace();
+		} catch (IOException exception) {
+			exception.printStackTrace();
 		}
 		dispReport();
 	}
@@ -182,7 +151,6 @@ public class Extractor extends JFrame {
 	private void dispReport() {
 		if (this.sMessage!=null)
 		System.out.println(this.sMessage);
-		
 	}
 
 	private void analyzeFile(File fl, File destinationDir) {
@@ -221,20 +189,6 @@ public class Extractor extends JFrame {
 				this.filesErrors.add(fl.getPath());
 			}
 		}
-		// if (isImage(extensionFile)) {
-		// String panorama = getPanorama(fileName);
-		// if (StringUtils.isEmpty(panorama)) {
-		// copyImageFile(fl, destinationDir);
-		// } else {
-		// copyPanoramaFile(fl, destinationDir, panorama);
-		// }
-		// } else{
-		// if (isVideo(extensionFile)) {
-		// String panorama = "video";
-		// copyPanoramaFile(fl, destinationDir, panorama);
-		// }
-		//
-		// }
 
 	}
 
@@ -313,17 +267,18 @@ public class Extractor extends JFrame {
 
 	}
 
-	void fillSettingPanel() {
-		this.settingPanel.setLayout(new GridBagLayout());
-		GridBagConstraints constraints = new GridBagConstraints();
-		this.settingPanel.add(exifDate, constraints);
-	}
 
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 		Extractor extractor = new Extractor();
 		extractor.showExtractor();
-		extractor.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		//extractor.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		extractor.addWindowListener(new java.awt.event.WindowAdapter() {
+			public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+				extractor.writeSettings();
+				System.exit(0);
+			}
+		});
 	}
 
 	protected void showExtractor() {
@@ -335,16 +290,18 @@ public class Extractor extends JFrame {
 		this.setTitle(versionOfProduct);
 	}
 
-	void process() {
+	void process(ActionEvent actionEvent) {
 		message("Start");
 		countCopy = 0;
 		countIdentical = 0;
 		countMistake = 0;
-		useExifDate = this.exifDate.isSelected();
+		useExifDate = applicationPanel.isExifDateSelected();
 		message(" use exif date = " + useExifDate);
+		File destinationDir = applicationPanel.getDestinationDirectory();
+		destination=destinationDir.getPath();
+		File[] sourceFiles = applicationPanel.getSelectedFiles();
+		source=sourceFiles[0].getPath();
 
-		File destinationDir = this.destinationPanel.getFile();
-		File[] sourceFiles = this.sourcePanel.getSelectedFiles();
 		for (int i = 0; i < sourceFiles.length; i++) {
 			File fl = sourceFiles[i];
 			message("From " + fl.getPath() + " to " + destinationDir.getPath());
@@ -512,7 +469,6 @@ public class Extractor extends JFrame {
 			}
 		}
 		if (!fileDest.exists()) {
-			if (this.moveFiles.isSelected()){
 				// FileMove
 				message("Move file from " + fl.getPath() + " to "
 						+ fileDest.getPath());
@@ -523,21 +479,8 @@ public class Extractor extends JFrame {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-				
-			}
-			else{
-			// FileCopy
-			message("Copy file from " + fl.getPath() + " to "
-					+ fileDest.getPath());
-			try {
-				FileUtils.copyFile(fl, fileDest);
-				this.countCopy++;
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			}
-		} else {
+		}				
+		else {
 			if (isTheSameFile(fl, fileDest)) {
 				message("File already Exists " + fl.getPath());
 				try {
