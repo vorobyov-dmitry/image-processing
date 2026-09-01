@@ -17,7 +17,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.release>21</maven.compiler.release>
-    <main.class>ua.com.ostrog.photo.Extractor</main.class>
+    <main.class>ua.com.ostrog.photo.ui.Application</main.class>
 
     <commons-imaging.version>1.0.0-alpha6</commons-imaging.version>
     <commons-io.version>2.22.0</commons-io.version>

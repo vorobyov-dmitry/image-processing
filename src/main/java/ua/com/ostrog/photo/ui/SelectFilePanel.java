@@ -1,4 +1,4 @@
-package ua.com.ostrog.photo;
+package ua.com.ostrog.photo.ui;
 
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
@@ -115,10 +115,6 @@ public class SelectFilePanel extends JPanel {
 	public File getDestinationDirectory() {
 		return file;
 	}
-
-//	public void setFile(File file) {
-//		this.file = file;
-//	}
 
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
