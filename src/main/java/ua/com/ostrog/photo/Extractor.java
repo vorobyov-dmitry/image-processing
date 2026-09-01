@@ -21,16 +21,17 @@ import java.util.prefs.Preferences;
 import javax.swing.JFrame;
 
 import org.apache.commons.imaging.Imaging;
-import org.apache.commons.imaging.common.IImageMetadata;
+import org.apache.commons.imaging.common.ImageMetadata;
 import org.apache.commons.imaging.formats.jpeg.JpegImageMetadata;
 import org.apache.commons.imaging.formats.tiff.TiffField;
 import org.apache.commons.imaging.formats.tiff.TiffImageMetadata;
-import org.apache.commons.imaging.formats.tiff.fieldtypes.FieldType;
-import org.apache.commons.imaging.formats.tiff.taginfos.TagInfo;
+import org.apache.commons.imaging.formats.tiff.constants.ExifTagConstants;
+import org.apache.commons.imaging.formats.tiff.constants.TiffTagConstants;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.Logger;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class Extractor extends JFrame {
 	private static final long serialVersionUID = -423490175756620363L;
@@ -40,7 +41,7 @@ public class Extractor extends JFrame {
 	private static final String NOT_PROCESS = "None";
 	private static final String PANORAMA = "panorama";
 	
-	private static Logger logger = Logger.getLogger(Extractor.class);
+	private static Logger logger = LogManager.getLogger(Extractor.class);
 	public static final String versionOfProduct = "photo v.3.02";
 	
 	private String destination = "";
@@ -423,11 +424,11 @@ public class Extractor extends JFrame {
 	String extractExifDate(File file) {
 		if (isImage(file) && isNotRaw(file)) {
 			try {
-				final IImageMetadata metadata = Imaging.getMetadata(file);
+				final ImageMetadata metadata = Imaging.getMetadata(file);
 				final JpegImageMetadata jpegMetadata = (JpegImageMetadata) metadata;
 				final TiffImageMetadata exifMetadata = jpegMetadata.getExif();
-				TiffField field = exifMetadata.findField(new TagInfo(
-						"DateTimeOriginal", 36867, FieldType.ASCII));
+				TiffField field = exifMetadata
+						.findField(ExifTagConstants.EXIF_TAG_DATE_TIME_ORIGINAL);
 				if (field != null) {
 					String s = String.valueOf(field.getValue());
 					if (s.length() >= 10) {
@@ -551,13 +552,13 @@ public class Extractor extends JFrame {
 
 	String metaOfPhoto(File fileImage) {
 		try {
-			IImageMetadata metadata = Imaging.getMetadata(fileImage);
+			ImageMetadata metadata = Imaging.getMetadata(fileImage);
 			JpegImageMetadata jpegMetadata = (JpegImageMetadata) metadata;
 			TiffImageMetadata exifMetadata = jpegMetadata.getExif();
-			Object o1 = exifMetadata.findField(
-					new TagInfo("Model", 272, FieldType.ASCII)).getValue();
-			Object o2 = exifMetadata.findField(
-					new TagInfo("DateTimeOriginal", 36867, FieldType.ASCII))
+			Object o1 = exifMetadata.findField(TiffTagConstants.TIFF_TAG_MODEL)
+					.getValue();
+			Object o2 = exifMetadata
+					.findField(ExifTagConstants.EXIF_TAG_DATE_TIME_ORIGINAL)
 					.getValue();
 			if ((o1 != null) && (o2 != null)) {
 				return o1.toString() + o2.toString();

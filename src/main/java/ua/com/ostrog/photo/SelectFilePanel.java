@@ -44,9 +44,6 @@ public class SelectFilePanel extends JPanel {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				openFiles();
-//				if (files != null) {
-//					processFiles(files);
-//				}
 			}
 		});
 		constraints.gridx++;
