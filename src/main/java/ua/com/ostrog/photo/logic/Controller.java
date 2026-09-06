@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.List;
+import java.util.Objects;
 
 import org.apache.commons.imaging.Imaging;
 import org.apache.commons.imaging.common.ImageMetadata;
@@ -26,6 +27,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import ua.com.ostrog.photo.report.Report;
+
 /**
  * Holds all the file analysing and moving logic that used to live in the
  * {@code Extractor} Swing frame. The UI now only collects the source files,
@@ -34,14 +37,12 @@ import org.apache.logging.log4j.Logger;
  */
 public class Controller {
 	private static final String EXISTS_DIR = "exists";
-	private static final String IMAGE = "IMAGE";
-	private static final String VIDEO = "video";
-	private static final String NOT_PROCESS = "None";
-	private static final String PANORAMA = "panorama";
+
+	private static final String VIDEO_DIR = "video";
+
 
 	private static Logger logger = LogManager.getLogger(Controller.class);
 
-	private String destination = "";
 	private String source = "";
 	private File existDir = null;
 	private int countCopy = 0;
@@ -58,20 +59,24 @@ public class Controller {
 	private SimpleDateFormat simpleDateFormat = new SimpleDateFormat(
 			"yyyy-MM-dd");
 	private boolean useExifDate = false;
+	
 	private List<String> filesProcessed = new ArrayList<String>();
 	private List<String> filesNew = new ArrayList<String>();
 	private List<String> filesErrors = new ArrayList<String>();
 	private List<String> filesIgnored = new ArrayList<String>();
 	private List<String> filesWrongDate = new ArrayList<String>();
+	private AnalysisResult analysisResult = new AnalysisResult();
+
+
+
 	private StringWriter writer = null;
 	private String sMessage = null;
 
-	public void analyze(File[] sourceFiles, File destinationDir, boolean useExifDate) {
+	public void analyze(CoreFilesData coreFilesData) {
 		message("Start analyze files");
-		this.useExifDate = useExifDate;
+		this.useExifDate = coreFilesData.isUseExifDate();
 		message("Start use exif date = " + useExifDate);
-		this.destination = destinationDir.getPath();
-		this.source = sourceFiles[0].getPath();
+		this.source = coreFilesData.getSourceFiles()[0].getPath();
 		existDir = new File(source + File.separator + EXISTS_DIR);
 		this.filesErrors.clear();
 		this.filesNew.clear();
@@ -81,13 +86,13 @@ public class Controller {
 		sMessage = null;
 		this.writer = new StringWriter();
 
-		for (int i = 0; i < sourceFiles.length; i++) {
-			File fl = sourceFiles[i];
-			message("From " + fl.getPath() + " to " + destinationDir.getPath());
+		for (int i = 0; i < coreFilesData.getSourceFiles().length; i++) {
+			File fl = coreFilesData.getSourceFiles()[i];
+			message("From " + fl.getPath() + " to " + coreFilesData.getDestinationDir().getPath());
 			if (fl.isDirectory()) {
-				analyzeDir(fl, destinationDir);
+				analyzeDir(fl, coreFilesData.getDestinationDir());
 			} else {
-				analyzeFile(fl, destinationDir);
+				analyzeFile(fl, coreFilesData.getDestinationDir());
 			}
 		}
 		message("============== finished =======");
@@ -96,36 +101,58 @@ public class Controller {
 		message("error " + this.filesErrors.size());
 		message("ignored " + this.filesIgnored.size());
 		message("wrong date  " + this.filesWrongDate.size());
-		try {
-			FileUtils
-					.writeLines(new File(source+File.separator+"processed.lst"), this.filesProcessed);
-			FileUtils.writeLines(new File(source+File.separator+"new.lst"), this.filesNew);
-			FileUtils.writeLines(new File(source+File.separator+"errors.lst"), this.filesErrors);
-			FileUtils.writeLines(new File(source+File.separator+"ignored.lst"), this.filesIgnored);
-			if (this.filesWrongDate.size()>0){
-				this.filesWrongDate.add(0, "EXIF DATE  FILE DATE             FILE ");
-			}
-			FileUtils.writeLines(new File(source+File.separator+"wrongDate.lst"), this.filesWrongDate);
-			IOUtils.writeLines(this.filesProcessed,"\n" , writer);
-			writer.write("  New \n");
-			IOUtils.writeLines(this.filesNew, "\n", writer);
-			sMessage= writer.toString();
-			writer.close();
+		// try {
+		// 	FileUtils
+		// 			.writeLines(new File(source+File.separator+"processed.lst"), this.filesProcessed);
+		// 	FileUtils.writeLines(new File(source+File.separator+"new.lst"), this.filesNew);
+		// 	FileUtils.writeLines(new File(source+File.separator+"errors.lst"), this.filesErrors);
+		// 	FileUtils.writeLines(new File(source+File.separator+"ignored.lst"), this.filesIgnored);
+		// 	if (this.filesWrongDate.size()>0){
+		// 		this.filesWrongDate.add(0, "EXIF DATE  FILE DATE             FILE ");
+		// 	}
+		// 	FileUtils.writeLines(new File(source+File.separator+"wrongDate.lst"), this.filesWrongDate);
+		// 	IOUtils.writeLines(this.filesProcessed,"\n" , writer);
+		// 	writer.write("  New \n");
+		// 	IOUtils.writeLines(this.filesNew, "\n", writer);
+		// 	sMessage= writer.toString();
+		// 	writer.close();
 
-		} catch (IOException exception) {
-			exception.printStackTrace();
-		}
+		// } catch (IOException exception) {
+		// 	exception.printStackTrace();
+		// }
 		dispReport();
 	}
 
 	private void dispReport() {
 		if (this.sMessage!=null)
 		System.out.println(this.sMessage);
+		this.analysisResult.showData();
+		Report report = new Report();
+		report.showReport(analysisResult);
+
 	}
 
 	private void analyzeFile(File fl, File destinationDir) {
-		String typeFile = getTypeFile(fl);
-		if (NOT_PROCESS.equals(typeFile)) {
+		ImageType typeFile = getTypeFile(fl);
+		String destinationFileName = null;
+		FileEntry fileEntry = new FileEntry(fl);
+		fileEntry.setImageType(typeFile);
+		Boolean consistentExifDate = null;
+		switch (typeFile) {
+		case PANORAMA:
+			destinationFileName = getDestinationFileName(fl, destinationDir,
+					getPanorama(fl.getName()));
+			consistentExifDate = checkConsistenceOfExifData(fl);
+			break;
+		case IMAGE:
+			destinationFileName = getDestinationFileName(fl, destinationDir, "");
+			consistentExifDate = checkConsistenceOfExifData(fl);
+			break;
+		case VIDEO:
+			destinationFileName = getDestinationFileName(fl, destinationDir,
+					VIDEO_DIR);
+			break;
+		case NOT_PROCESS:
 			for (int i = 0; i < ignoredFileName.length; i++) {
 				if (ignoredFileName[i].equalsIgnoreCase(fl.getName())){
 					return;
@@ -133,49 +160,48 @@ public class Controller {
 			}
 			this.filesIgnored.add(fl.getPath());
 			return;
+		case RAW:
+			destinationFileName = getDestinationFileNameForRAW(fl, destinationDir);
+			break;
+
 		}
-		String destinationFileName = null;
-		checkConsistenceOfExifData(fl);
-		switch (typeFile) {
-		case PANORAMA:
-			destinationFileName = getDestinationFileName(fl, destinationDir,
-					getPanorama(fl.getName()));
-			break;
-		case IMAGE:
-			destinationFileName = getDestinationFileName(fl, destinationDir, "");
-			break;
-		case VIDEO:
-			destinationFileName = getDestinationFileName(fl, destinationDir,
-					VIDEO);
-			break;
-		}
+
 		File destinationFile = new File(destinationFileName);
+		fileEntry.setDestination(destinationFile);
+		fileEntry.setExifDate(consistentExifDate);
 		if (!destinationFile.exists()) {
 			this.filesNew.add(fl.getPath());
+			fileEntry.setTypDestination(FileDestination.NEW);
 		} else {
 			if (isTheSameFile(fl, destinationFile)) {
 				this.filesProcessed.add(fl.getPath());
+				fileEntry.setTypDestination(FileDestination.EXIST);
 			} else {
+				fileEntry.setTypDestination(FileDestination.ERROR);
 				this.filesErrors.add(fl.getPath());
 			}
 		}
+		this.analysisResult.addFileEntry(fileEntry);
 
 	}
 
-	private void checkConsistenceOfExifData(File fl) {
+	private Boolean  checkConsistenceOfExifData(File fl) {
 		String sDateExif = extractExifDate(fl);
 		String sDateFile=null;
 		try {
 			sDateFile = extractLastModifiedAsString(fl);
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
+			// TODO Auto-generated catch block	
 			e.printStackTrace();
 		}
-		if (sDateExif!=null){
-			if (!sDateExif.equals(sDateFile)){
-				this.filesWrongDate.add(sDateExif+" "+sDateFile+" "+fl.getPath());
-			}
+		if (sDateExif == null || sDateFile==null){
+			return null;
 		}
+		Boolean b =  Objects.equals(sDateExif, sDateFile);
+		if (!b){
+				this.filesWrongDate.add(sDateExif+" "+sDateFile+" "+fl.getPath());
+		}
+		return b;
 	}
 
 	private String extractLastModifiedAsString(File fl) throws FileNotFoundException {
@@ -196,27 +222,32 @@ public class Controller {
 		return s;
 	}
 
-	private String getTypeFile(File fl) {
+	private ImageType getTypeFile(File fl) {
 		String fileName = fl.getName().toLowerCase();
 		String extensionFile = getExtensioOfFile(fl);
 		if (extensionFile == null) {
-			return NOT_PROCESS;
+			return ImageType.NOT_PROCESS;
 		}
 		if (extensionImage[0].equals(extensionFile)
 				&& fileName.startsWith("st") && fileName.charAt(3) == '_') {
-			return PANORAMA;
+			return ImageType.PANORAMA;
 		}
 		for (int i = 0; i < extensionImage.length; i++) {
 			if (extensionImage[i].equals(extensionFile)) {
-				return IMAGE;
+				return ImageType.IMAGE;
 			}
 		}
 		for (int i = 0; i < extensionVideo.length; i++) {
 			if (extensionVideo[i].equals(extensionFile)) {
-				return VIDEO;
+				return ImageType.VIDEO;
 			}
 		}
-		return NOT_PROCESS;
+		for (int i = 0; i < extensionRaw.length; i++) {
+			if (extensionRaw[i].equals(extensionFile)) {
+				return ImageType.RAW;
+			}
+		}
+		return ImageType.NOT_PROCESS;
 
 	}
 
@@ -244,7 +275,6 @@ public class Controller {
 		countMistake = 0;
 		this.useExifDate = useExifDate;
 		message(" use exif date = " + useExifDate);
-		this.destination = destinationDir.getPath();
 		this.source = sourceFiles[0].getPath();
 		existDir = new File(source + File.separator + EXISTS_DIR);
 
@@ -332,7 +362,7 @@ public class Controller {
 			}
 		} else {
 			if (isVideo(extensionFile)) {
-				copyPanoramaFile(fl, destinationDir, VIDEO);
+				copyPanoramaFile(fl, destinationDir, VIDEO_DIR);
 			}
 		}
 	}
@@ -341,11 +371,11 @@ public class Controller {
 		String s = fileName.toLowerCase();
 		if (s.startsWith("st")) {
 			if (s.length() > 8 && s.charAt(3) == '_') {
-				String num = s.substring(5, 8);
+				String num = s.substring(4, 8);
 				if (StringUtils.isNumeric(num)) {
 					int index = s.charAt(2) - 'a';
 					int numPanorama = Integer.parseInt(num) - index;
-					String panoramaDir = "panorama_" + numPanorama;
+					String panoramaDir = "panorama_" + num;
 					return panoramaDir;
 				}
 			}
@@ -468,6 +498,22 @@ public class Controller {
 				+ sDate.substring(0, 4) + File.separator + sDate
 				+ File.separator
 				+ (panoramaDir == null ? "" : panoramaDir + File.separator)
+				+ fl.getName().toLowerCase();
+		return destinationName;
+	}
+
+	private String getDestinationFileNameForRAW(File fl, File destinationDir) {
+		String fileDate="NNNNNN";
+		try {
+			fileDate = extractLastModifiedAsString(fl);
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		String sDate = this.useExifDate ? getExifDate(fl) : fileDate;
+		String destinationName = destinationDir.getPath() + File.separator
+				+ sDate.substring(0, 4) + File.separator + "RAW"
+				+ File.separator
 				+ fl.getName().toLowerCase();
 		return destinationName;
 	}

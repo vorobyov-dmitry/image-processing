@@ -18,6 +18,7 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 
 import ua.com.ostrog.photo.logic.Controller;
+import ua.com.ostrog.photo.logic.CoreFilesData;
 
 /**
  * The application window. This is the former {@code Extractor} frame and the
@@ -53,7 +54,7 @@ public class Application extends JFrame {
 		this.destinationPanel.setDir(destination);
 		this.destinationPanel.setMultiSelectionEnabled(false);
 		this.destinationPanel.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-		this.destinationPanel.setTitleBorder("Destination dir");
+		this.destinationPanel.setTitleBorder("Target dir");
 		content.add(sourcePanel);
 		content.add(destinationPanel);
 		fillSettingPanel();
@@ -80,7 +81,7 @@ public class Application extends JFrame {
 		File[] sourceFiles = this.sourcePanel.getSelectedFiles();
 		this.destination = destinationDir.getPath();
 		this.source = sourceFiles[0].getPath();
-		this.controller.analyze(sourceFiles, destinationDir, this.exifDate.isSelected());
+		this.controller.analyze(new CoreFilesData(destinationDir, sourceFiles, this.exifDate.isSelected()));
 	}
 
 	private void processFiles() {
@@ -104,7 +105,6 @@ public class Application extends JFrame {
 		try {
 			prefs.flush();
 		} catch (BackingStoreException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}

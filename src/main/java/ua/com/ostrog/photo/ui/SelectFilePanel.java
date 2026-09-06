@@ -16,7 +16,6 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
-import javax.swing.border.Border;
 import javax.swing.border.TitledBorder;
 
 public class SelectFilePanel extends JPanel {
@@ -117,7 +116,6 @@ public class SelectFilePanel extends JPanel {
 	}
 
 	public static void main(String[] args) {
-		// TODO Auto-generated method stub
 		JFrame frame = new JFrame();
 		SelectFilePanel selectFilePanel = new SelectFilePanel();
 		frame.setContentPane(selectFilePanel);
