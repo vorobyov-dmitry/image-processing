@@ -65,7 +65,7 @@ public class Controller {
 	private List<String> filesErrors = new ArrayList<String>();
 	private List<String> filesIgnored = new ArrayList<String>();
 	private List<String> filesWrongDate = new ArrayList<String>();
-	private AnalysisResult analysisResult = new AnalysisResult();
+	private AnalysisResult analysisResult;
 
 
 
@@ -77,6 +77,7 @@ public class Controller {
 		this.useExifDate = coreFilesData.isUseExifDate();
 		message("Start use exif date = " + useExifDate);
 		this.source = coreFilesData.getSourceFiles()[0].getPath();
+		analysisResult = new AnalysisResult(this.source, coreFilesData.getDestinationDir().getPath());
 		existDir = new File(source + File.separator + EXISTS_DIR);
 		this.filesErrors.clear();
 		this.filesNew.clear();
@@ -159,6 +160,7 @@ public class Controller {
 				}
 			}
 			this.filesIgnored.add(fl.getPath());
+		    this.analysisResult.addFileEntry(fileEntry);
 			return;
 		case RAW:
 			destinationFileName = getDestinationFileNameForRAW(fl, destinationDir);
@@ -374,8 +376,8 @@ public class Controller {
 				String num = s.substring(4, 8);
 				if (StringUtils.isNumeric(num)) {
 					int index = s.charAt(2) - 'a';
-					int numPanorama = Integer.parseInt(num) - index;
-					String panoramaDir = "panorama_" + num;
+					String  numPanorama = String.valueOf(Integer.parseInt(num) - index);
+					String panoramaDir = "panorama_" + StringUtils.leftPad(numPanorama, 4, '0') ;
 					return panoramaDir;
 				}
 			}
