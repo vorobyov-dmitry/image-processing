@@ -20,10 +20,6 @@ import org.apache.commons.imaging.formats.jpeg.JpegImageMetadata;
 import org.apache.commons.imaging.formats.tiff.TiffField;
 import org.apache.commons.imaging.formats.tiff.TiffImageMetadata;
 import org.apache.commons.imaging.formats.tiff.constants.ExifTagConstants;
-import org.apache.commons.imaging.formats.tiff.constants.TiffTagConstants;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 /**
  * Holds all the file analysing and moving logic that used to live in the
@@ -36,8 +32,6 @@ public class Controller {
 
 	private static final String VIDEO_DIR = "video";
 
-
-	private static Logger logger = LogManager.getLogger(Controller.class);
 
 	private String source = "";
 	private File existDir = null;
@@ -207,7 +201,7 @@ public class Controller {
 			return null;
 		}
 		String fileName = file.getName();
-		if (StringUtils.isEmpty(fileName)) {
+		if (isEmpty(fileName)) {
 			return null;
 		}
 		int n = fileName.lastIndexOf(".");
@@ -222,15 +216,39 @@ public class Controller {
 		if (s.startsWith("st")) {
 			if (s.length() > 8 && s.charAt(3) == '_') {
 				String num = s.substring(4, 8);
-				if (StringUtils.isNumeric(num)) {
+				if (isNumeric(num)) {
 					int index = s.charAt(2) - 'a';
 					String  numPanorama = String.valueOf(Integer.parseInt(num) - index);
-					String panoramaDir = "panorama_" + StringUtils.leftPad(numPanorama, 4, '0') ;
+					String panoramaDir = "panorama_" + leftPad(numPanorama, 4, '0') ;
 					return panoramaDir;
 				}
 			}
 		}
 		return "";
+	}
+
+	private static boolean isEmpty(String value) {
+		return value == null || value.isEmpty();
+	}
+
+	private static boolean isNumeric(String value) {
+		if (isEmpty(value)) {
+			return false;
+		}
+		for (int i = 0; i < value.length(); i++) {
+			if (!Character.isDigit(value.charAt(i))) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	private static String leftPad(String value, int size, char padChar) {
+		StringBuilder padded = new StringBuilder();
+		for (int i = value.length(); i < size; i++) {
+			padded.append(padChar);
+		}
+		return padded.append(value).toString();
 	}
 
 	String getExifDate(File file) {
@@ -274,7 +292,7 @@ public class Controller {
 
 	private boolean isNotRaw(File file) {
 		String extension = getExtensioOfFile(file);
-		if (StringUtils.isEmpty(extension)) {
+		if (isEmpty(extension)) {
 			return true;
 		}
 		return !isRaw(extension.toLowerCase());
@@ -318,39 +336,13 @@ public class Controller {
 	boolean isTheSameFile(File fl, File fileDest) {
 		boolean IsSameLength = fileDest.length() == fl.length();
 		if (!IsSameLength) {
-			logger.error("Length is different " + fl.getPath() + " "
-					+ fileDest.getPath());
 			return false;
 		}
 		boolean isSameContent =compareBytes(fl, fileDest, 32000);
 		if (!isSameContent){
-			logger.error("Content is different " + fl.getPath() + " "
-					+ fileDest.getPath());
 			return false;
 		}
 		return true;
-	}
-
-	String metaOfPhoto(File fileImage) {
-		try {
-			ImageMetadata metadata = Imaging.getMetadata(fileImage);
-			JpegImageMetadata jpegMetadata = (JpegImageMetadata) metadata;
-			TiffImageMetadata exifMetadata = jpegMetadata.getExif();
-			Object o1 = exifMetadata.findField(TiffTagConstants.TIFF_TAG_MODEL)
-					.getValue();
-			Object o2 = exifMetadata
-					.findField(ExifTagConstants.EXIF_TAG_DATE_TIME_ORIGINAL)
-					.getValue();
-			if ((o1 != null) && (o2 != null)) {
-				return o1.toString() + o2.toString();
-			}
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		return "" + System.currentTimeMillis() + "" + Math.random() + ""
-				+ fileImage.hashCode();
 	}
 
 	private boolean compareBytes(File fl, File fileDest, int i) {
@@ -370,7 +362,6 @@ public class Controller {
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
-			logger.error(e.getMessage());
 			return false;
 		} finally {
 			close(fs1);
@@ -405,7 +396,7 @@ public class Controller {
 
 	boolean isImage(File file) {
 		String extension = getExtensioOfFile(file);
-		if (StringUtils.isEmpty(extension)) {
+		if (isEmpty(extension)) {
 			return false;
 		}
 		return isImage(extension.toLowerCase());
@@ -429,23 +420,9 @@ public class Controller {
 		return false;
 	}
 
-	boolean isVideo(String extension) {
-		for (int i = 0; i < extensionVideo.length; i++) {
-			if (extensionVideo[i].equals(extension)) {
-				return true;
-			}
-		}
-		return false;
-	}
-
 	public AnalysisResult getAnalysisResult() {
 		return analysisResult;
 	}
-
-	public void setAnalysisResult(AnalysisResult analysisResult) {
-		this.analysisResult = analysisResult;
-	}
-
 
 	/**
 	 * Moves every {@link FileEntry} whose {@link FileDestination} is
@@ -464,8 +441,8 @@ public class Controller {
 				try {
 					moveFile(fileEntry);
 				} catch (IOException e) {
-					logger.error("Error moving file " + fileEntry.getSource() + " to "
-							+ fileEntry.getDestination(), e);
+					System.err.println("Error moving file " + fileEntry.getSource() + " to "
+							+ fileEntry.getDestination()+ e.getMessage());
 					if (!ignoreAllErrors) {
 						ErrorAction action = listener == null ? ErrorAction.STOP : listener.onError(fileEntry, e);
 						if (action == ErrorAction.STOP) {

@@ -17,28 +17,12 @@ public class AnalysisResult {
         return destinationDirectory;
     }
 
-    public void setDestinationDirectory(String destinationDirectory) {
-        this.destinationDirectory = destinationDirectory;
-    }
-
     public String getSourceDirectory() {
         return sourceDirectory;
     }
 
-    public void setSourceDirectory(String sourceDirectory) {
-        this.sourceDirectory = sourceDirectory;
-    }
-
-
-
     public void addFileEntry(FileEntry fileEntry) {
         this.filesEntries.add(fileEntry);
-    }
-
-    public void showData() {
-        for (FileEntry fileEntry : filesEntries) {
-            System.out.println(fileEntry);
-        }
     }
 
     public List<FileEntry> getFilesEntries() {

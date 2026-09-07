@@ -14,21 +14,11 @@ public CoreFilesData(File destinationDir, File[] sourceFiles, boolean useExifDat
     this.sourceFiles = sourceFiles;
     this.useExifDate = useExifDate;
 }
-public void setDestinationDir(File destinationDir) {
-    this.destinationDir = destinationDir;
-}
 public File[] getSourceFiles() {
     return sourceFiles;
-}
-public void setSourceFiles(File[] sourceFiles) {
-    this.sourceFiles = sourceFiles;
 }
 public boolean isUseExifDate() {
     return useExifDate;
 }
-public void setUseExifDate(boolean useExifDate) {
-    this.useExifDate = useExifDate;
-}
-
 
 }

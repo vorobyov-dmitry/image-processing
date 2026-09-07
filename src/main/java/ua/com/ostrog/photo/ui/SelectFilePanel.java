@@ -133,16 +133,8 @@ public class SelectFilePanel extends JPanel {
 		this.border.setTitle(title);
 	}
 
-	public boolean isMultiSelectionEnabled() {
-		return multiSelectionEnabled;
-	}
-
 	public void setMultiSelectionEnabled(boolean multiSelectionEnabled) {
 		this.multiSelectionEnabled = multiSelectionEnabled;
-	}
-
-	public int getFileSelectionMode() {
-		return fileSelectionMode;
 	}
 
 	public void setFileSelectionMode(int fileSelectionMode) {

@@ -20,9 +20,6 @@
     <main.class>ua.com.ostrog.photo.ui.Application</main.class>
 
     <commons-imaging.version>1.0.0-alpha6</commons-imaging.version>
-    <commons-io.version>2.22.0</commons-io.version>
-    <commons-lang3.version>3.20.0</commons-lang3.version>
-    <log4j.version>2.26.1</log4j.version>
     <junit.version>5.11.3</junit.version>
     <openpdf.version>3.0.5</openpdf.version>
   </properties>
@@ -33,27 +30,6 @@
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-imaging</artifactId>
       <version>${commons-imaging.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>commons-io</groupId>
-      <artifactId>commons-io</artifactId>
-      <version>${commons-io.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-lang3</artifactId>
-      <version>${commons-lang3.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-api</artifactId>
-      <version>${log4j.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-core</artifactId>
-      <version>${log4j.version}</version>
-      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>com.github.librepdf</groupId>
