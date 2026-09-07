@@ -5,7 +5,7 @@ import java.io.File;
 public class FileEntry {
 private File source;
 private File destination;
-private FileDestination typDestination;
+private FileDestination typeDestination;
 private Boolean  exifDate;
 private ImageType imageType;
 
@@ -24,11 +24,11 @@ public File getDestination() {
 public void setDestination(File destination) {
     this.destination = destination;
 }
-public FileDestination getTypDestination() {
-    return typDestination;
+public FileDestination getTypeDestination() {
+    return typeDestination;
 }
-public void setTypDestination(FileDestination typDestination) {
-    this.typDestination = typDestination;
+public void setTypeDestination(FileDestination typeDestination) {
+    this.typeDestination = typeDestination;
 }
 public Boolean getExifDate() {
     return exifDate;
@@ -44,7 +44,7 @@ public void setImageType(ImageType imageType) {
 }
 @Override
 public String toString() {
-    return "FileEntry [source=" + source + ", destination=" + destination + ", typDestination=" + typDestination
+    return "FileEntry [source=" + source + ", destination=" + destination + ", typDestination=" + typeDestination
             + ", exifDate=" + exifDate + ", imageType=" + imageType + "]";
 }
 

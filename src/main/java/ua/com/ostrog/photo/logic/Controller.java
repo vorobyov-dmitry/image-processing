@@ -6,9 +6,9 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.StringWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.List;
@@ -21,13 +21,9 @@ import org.apache.commons.imaging.formats.tiff.TiffField;
 import org.apache.commons.imaging.formats.tiff.TiffImageMetadata;
 import org.apache.commons.imaging.formats.tiff.constants.ExifTagConstants;
 import org.apache.commons.imaging.formats.tiff.constants.TiffTagConstants;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import ua.com.ostrog.photo.report.Report;
 
 /**
  * Holds all the file analysing and moving logic that used to live in the
@@ -45,9 +41,6 @@ public class Controller {
 
 	private String source = "";
 	private File existDir = null;
-	private int countCopy = 0;
-	private int countIdentical = 0;
-	private int countMistake = 0;
 	private static final String[] ignoredFileName = new String[] {"thumbs.db","picasa.ini"};
 
 	private static final String[] extensionImage = new String[] { "jpg",
@@ -60,77 +53,24 @@ public class Controller {
 			"yyyy-MM-dd");
 	private boolean useExifDate = false;
 	
-	private List<String> filesProcessed = new ArrayList<String>();
-	private List<String> filesNew = new ArrayList<String>();
-	private List<String> filesErrors = new ArrayList<String>();
-	private List<String> filesIgnored = new ArrayList<String>();
-	private List<String> filesWrongDate = new ArrayList<String>();
 	private AnalysisResult analysisResult;
 
 
 
-	private StringWriter writer = null;
-	private String sMessage = null;
-
 	public void analyze(CoreFilesData coreFilesData) {
-		message("Start analyze files");
 		this.useExifDate = coreFilesData.isUseExifDate();
-		message("Start use exif date = " + useExifDate);
 		this.source = coreFilesData.getSourceFiles()[0].getPath();
 		analysisResult = new AnalysisResult(this.source, coreFilesData.getDestinationDir().getPath());
 		existDir = new File(source + File.separator + EXISTS_DIR);
-		this.filesErrors.clear();
-		this.filesNew.clear();
-		this.filesProcessed.clear();
-		this.filesIgnored.clear();
-		this.filesWrongDate.clear();
-		sMessage = null;
-		this.writer = new StringWriter();
 
 		for (int i = 0; i < coreFilesData.getSourceFiles().length; i++) {
 			File fl = coreFilesData.getSourceFiles()[i];
-			message("From " + fl.getPath() + " to " + coreFilesData.getDestinationDir().getPath());
 			if (fl.isDirectory()) {
 				analyzeDir(fl, coreFilesData.getDestinationDir());
 			} else {
 				analyzeFile(fl, coreFilesData.getDestinationDir());
 			}
 		}
-		message("============== finished =======");
-		message("Processed " + this.filesProcessed.size());
-		message("New  " + this.filesNew.size());
-		message("error " + this.filesErrors.size());
-		message("ignored " + this.filesIgnored.size());
-		message("wrong date  " + this.filesWrongDate.size());
-		// try {
-		// 	FileUtils
-		// 			.writeLines(new File(source+File.separator+"processed.lst"), this.filesProcessed);
-		// 	FileUtils.writeLines(new File(source+File.separator+"new.lst"), this.filesNew);
-		// 	FileUtils.writeLines(new File(source+File.separator+"errors.lst"), this.filesErrors);
-		// 	FileUtils.writeLines(new File(source+File.separator+"ignored.lst"), this.filesIgnored);
-		// 	if (this.filesWrongDate.size()>0){
-		// 		this.filesWrongDate.add(0, "EXIF DATE  FILE DATE             FILE ");
-		// 	}
-		// 	FileUtils.writeLines(new File(source+File.separator+"wrongDate.lst"), this.filesWrongDate);
-		// 	IOUtils.writeLines(this.filesProcessed,"\n" , writer);
-		// 	writer.write("  New \n");
-		// 	IOUtils.writeLines(this.filesNew, "\n", writer);
-		// 	sMessage= writer.toString();
-		// 	writer.close();
-
-		// } catch (IOException exception) {
-		// 	exception.printStackTrace();
-		// }
-		dispReport();
-	}
-
-	private void dispReport() {
-		if (this.sMessage!=null)
-		System.out.println(this.sMessage);
-		this.analysisResult.showData();
-		Report report = new Report();
-		report.showReport(analysisResult);
-
 	}
 
 	private void analyzeFile(File fl, File destinationDir) {
@@ -159,7 +99,6 @@ public class Controller {
 					return;
 				}
 			}
-			this.filesIgnored.add(fl.getPath());
 		    this.analysisResult.addFileEntry(fileEntry);
 			return;
 		case RAW:
@@ -172,15 +111,12 @@ public class Controller {
 		fileEntry.setDestination(destinationFile);
 		fileEntry.setExifDate(consistentExifDate);
 		if (!destinationFile.exists()) {
-			this.filesNew.add(fl.getPath());
-			fileEntry.setTypDestination(FileDestination.NEW);
+			fileEntry.setTypeDestination(FileDestination.NEW);
 		} else {
 			if (isTheSameFile(fl, destinationFile)) {
-				this.filesProcessed.add(fl.getPath());
-				fileEntry.setTypDestination(FileDestination.EXIST);
+				fileEntry.setTypeDestination(FileDestination.EXIST);
 			} else {
-				fileEntry.setTypDestination(FileDestination.ERROR);
-				this.filesErrors.add(fl.getPath());
+				fileEntry.setTypeDestination(FileDestination.ERROR);
 			}
 		}
 		this.analysisResult.addFileEntry(fileEntry);
@@ -199,11 +135,7 @@ public class Controller {
 		if (sDateExif == null || sDateFile==null){
 			return null;
 		}
-		Boolean b =  Objects.equals(sDateExif, sDateFile);
-		if (!b){
-				this.filesWrongDate.add(sDateExif+" "+sDateFile+" "+fl.getPath());
-		}
-		return b;
+		return Objects.equals(sDateExif, sDateFile);
 	}
 
 	private String extractLastModifiedAsString(File fl) throws FileNotFoundException {
@@ -258,7 +190,6 @@ public class Controller {
 			return;
 		}
 		File[] list = fl.listFiles();
-		message(" analyze dir " + fl.getPath());
 		for (int i = 0; i < list.length; i++) {
 			File entry = list[i];
 			if (entry.isDirectory()) {
@@ -270,66 +201,6 @@ public class Controller {
 
 	}
 
-	public void process(File[] sourceFiles, File destinationDir, boolean useExifDate) {
-		message("Start");
-		countCopy = 0;
-		countIdentical = 0;
-		countMistake = 0;
-		this.useExifDate = useExifDate;
-		message(" use exif date = " + useExifDate);
-		this.source = sourceFiles[0].getPath();
-		existDir = new File(source + File.separator + EXISTS_DIR);
-
-		for (int i = 0; i < sourceFiles.length; i++) {
-			File fl = sourceFiles[i];
-			message("From " + fl.getPath() + " to " + destinationDir.getPath());
-			if (fl.isDirectory()) {
-				processDir(fl, destinationDir);
-			} else {
-				processFile(fl, destinationDir);
-			}
-		}
-		message("============== finished =======");
-		message("Copied " + this.countCopy);
-		message("exists " + this.countIdentical);
-		message("error " + this.countMistake);
-	}
-
-	void message(String message) {
-		System.out.println(message);
-		logger.info(message);
-		if (writer!=null){
-			try {
-				writer.write(message);
-				writer.write("\n");
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-
-	}
-
-	void processDir(File fl, File destinationDir) {
-		if (fl.equals(existDir)){
-			return;
-		}
-		File[] list = fl.listFiles();
-		String sPath=fl.getPath();
-		if (sPath.endsWith(EXISTS_DIR)){
-			message(" this dir ignored " + sPath);
-			return;
-		}
-		message(" process dir " + sPath);
-		for (int i = 0; i < list.length; i++) {
-			File entry = list[i];
-			if (entry.isDirectory()) {
-				processDir(entry, destinationDir);
-			} else {
-				processFile(entry, destinationDir);
-			}
-		}
-	}
 
 	String getExtensioOfFile(File file) {
 		if (file == null) {
@@ -346,29 +217,6 @@ public class Controller {
 		String extensionFile = fileName.substring(n + 1);
 		return extensionFile.toLowerCase();
 	}
-
-	void processFile(File fl, File destinationDir) {
-		String fileName = fl.getName();
-		String extensionFile = getExtensioOfFile(fl);
-		if (extensionFile == null) {
-			return;
-		}
-		extensionFile = extensionFile.toLowerCase();
-		if (isImage(extensionFile)) {
-			String panorama = getPanorama(fileName);
-			if (StringUtils.isEmpty(panorama)) {
-				copyPanoramaFile(fl, destinationDir, null);
-
-			} else {
-				copyPanoramaFile(fl, destinationDir, panorama);
-			}
-		} else {
-			if (isVideo(extensionFile)) {
-				copyPanoramaFile(fl, destinationDir, VIDEO_DIR);
-			}
-		}
-	}
-
 	String getPanorama(String fileName) {
 		String s = fileName.toLowerCase();
 		if (s.startsWith("st")) {
@@ -431,61 +279,6 @@ public class Controller {
 		}
 		return !isRaw(extension.toLowerCase());
 	}
-
-	void copyPanoramaFile(File fl, File destinationDir, String panoramaDir) {
-
-		String destinationName = getDestinationFileName(fl, destinationDir,
-				panoramaDir);
-		File fileDest = new File(destinationName);
-		File parentDir = fileDest.getParentFile();
-		if (!parentDir.exists()) {
-			boolean res = parentDir.mkdirs();
-			if (!res) {
-				System.err.println("Error during creating dir "
-						+ parentDir.getPath());
-				System.exit(0);
-			}
-		}
-		if (!fileDest.exists()) {
-				// FileMove
-				message("Move file from " + fl.getPath() + " to "
-						+ fileDest.getPath());
-				try {
-					FileUtils.moveFile(fl, fileDest);
-					this.countCopy++;
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-		}
-		else {
-			if (isTheSameFile(fl, fileDest)) {
-				message("File already Exists " + fl.getPath());
-				try {
-					String copy  = existDir.getPath()+File.separator+fl.getName();
-					File fileCopy = new File(copy);
-					if (fileCopy.exists()) {
-						if (isTheSameFile(fileCopy, fl))
-							{
-								FileUtils.deleteQuietly(fl);
-							}
-					}
-					else{
-						FileUtils.moveFileToDirectory(fl, existDir, true);
-					}
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				this.countIdentical++;
-			} else {
-				this.countMistake++;
-				errorMessage(" The file with the same name , but they are different"
-						+ fl.getPath() + " to " + fileDest.getPath());
-			}
-		}
-	}
-
 	private String getDestinationFileName(File fl, File destinationDir,
 			String panoramaDir) {
 		String fileDate="NNNNNN";
@@ -520,11 +313,6 @@ public class Controller {
 		return destinationName;
 	}
 
-	private void errorMessage(String message) {
-		System.err.println(message);
-		logger.error(message);
-
-	}
 
 
 	boolean isTheSameFile(File fl, File fileDest) {
@@ -648,6 +436,58 @@ public class Controller {
 			}
 		}
 		return false;
+	}
+
+	public AnalysisResult getAnalysisResult() {
+		return analysisResult;
+	}
+
+	public void setAnalysisResult(AnalysisResult analysisResult) {
+		this.analysisResult = analysisResult;
+	}
+
+
+	/**
+	 * Moves every {@link FileEntry} whose {@link FileDestination} is
+	 * {@code NEW} to its destination; entries with any other status are left
+	 * where they are. {@code listener} (may be {@code null}) is notified
+	 * after each entry is handled and is asked how to proceed when a move
+	 * fails.
+	 */
+	public void processFiles(ProcessProgressListener listener) {
+		List<FileEntry> filesEntries = analysisResult.getFilesEntries();
+		int total = filesEntries.size();
+		boolean ignoreAllErrors = false;
+		for (int i = 0; i < total; i++) {
+			FileEntry fileEntry = filesEntries.get(i);
+			if (fileEntry.getTypeDestination() == FileDestination.NEW) {
+				try {
+					moveFile(fileEntry);
+				} catch (IOException e) {
+					logger.error("Error moving file " + fileEntry.getSource() + " to "
+							+ fileEntry.getDestination(), e);
+					if (!ignoreAllErrors) {
+						ErrorAction action = listener == null ? ErrorAction.STOP : listener.onError(fileEntry, e);
+						if (action == ErrorAction.STOP) {
+							break;
+						}
+						if (action == ErrorAction.IGNORE_ALL) {
+							ignoreAllErrors = true;
+						}
+					}
+				}
+			}
+			if (listener != null) {
+				listener.onProgress(i + 1, total, fileEntry);
+			}
+		}
+	}
+
+	private void moveFile(FileEntry fileEntry) throws IOException {
+		Path sourcePath = fileEntry.getSource().toPath();
+		Path destinationPath = fileEntry.getDestination().toPath();
+		Files.createDirectories(destinationPath.getParent());
+		Files.move(sourcePath, destinationPath);
 	}
 
 }

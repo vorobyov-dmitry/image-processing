@@ -19,7 +19,7 @@ import javax.swing.JPanel;
 
 import ua.com.ostrog.photo.logic.Controller;
 import ua.com.ostrog.photo.logic.CoreFilesData;
-
+import ua.com.ostrog.photo.report.Report;
 /**
  * The application window. This is the former {@code Extractor} frame and the
  * former {@code ApplicationPanel} merged into a single class: it builds the UI
@@ -82,6 +82,9 @@ public class Application extends JFrame {
 		this.destination = destinationDir.getPath();
 		this.source = sourceFiles[0].getPath();
 		this.controller.analyze(new CoreFilesData(destinationDir, sourceFiles, this.exifDate.isSelected()));
+		Report report = new Report();
+		report.setEnabledProcessButton(false);
+		report.showReport(this.controller.getAnalysisResult());
 	}
 
 	private void processFiles() {
@@ -89,7 +92,10 @@ public class Application extends JFrame {
 		File[] sourceFiles = this.sourcePanel.getSelectedFiles();
 		this.destination = destinationDir.getPath();
 		this.source = sourceFiles[0].getPath();
-		this.controller.process(sourceFiles, destinationDir, this.exifDate.isSelected());
+		this.controller.analyze(new CoreFilesData(destinationDir, sourceFiles, this.exifDate.isSelected()));
+		Report report = new Report();
+		report.setController(this.controller);
+		report.showReport(this.controller.getAnalysisResult());
 	}
 
 	private void restoreSavedSettings() {
