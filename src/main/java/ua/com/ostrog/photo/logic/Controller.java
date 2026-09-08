@@ -25,7 +25,7 @@ import org.apache.commons.imaging.formats.tiff.constants.ExifTagConstants;
  * Holds all the file analysing and moving logic that used to live in the
  * {@code Extractor} Swing frame. The UI now only collects the source files,
  * the destination directory and the "use EXIF date" flag and hands them to
- * {@link #analyze} / {@link #process}.
+ * {@link #analyze} / {@link #processFiles}.
  */
 public class Controller {
 	private static final String EXISTS_DIR = "exists";
@@ -51,6 +51,17 @@ public class Controller {
 
 
 
+	/**
+	 * Walks every file/directory in {@code coreFilesData}'s source files and
+	 * builds a fresh {@link AnalysisResult} describing where each one would
+	 * end up if moved, without touching the filesystem. The result is stored
+	 * and can be retrieved with {@link #getAnalysisResult()}, and later moved
+	 * for real with {@link #processFiles}.
+	 *
+	 * @param coreFilesData source files/directories, destination directory
+	 *                      and whether to prefer the EXIF date over the file's
+	 *                      last-modified date
+	 */
 	public void analyze(CoreFilesData coreFilesData) {
 		this.useExifDate = coreFilesData.isUseExifDate();
 		this.source = coreFilesData.getSourceFiles()[0].getPath();
@@ -420,6 +431,10 @@ public class Controller {
 		return false;
 	}
 
+	/**
+	 * @return the result of the most recent {@link #analyze} call, or
+	 *         {@code null} if {@link #analyze} has not been called yet
+	 */
 	public AnalysisResult getAnalysisResult() {
 		return analysisResult;
 	}
@@ -427,9 +442,11 @@ public class Controller {
 	/**
 	 * Moves every {@link FileEntry} whose {@link FileDestination} is
 	 * {@code NEW} to its destination; entries with any other status are left
-	 * where they are. {@code listener} (may be {@code null}) is notified
-	 * after each entry is handled and is asked how to proceed when a move
-	 * fails.
+	 * where they are.
+	 *
+	 * @param listener notified after each entry is handled and asked how to
+	 *                 proceed when a move fails; may be {@code null}, in
+	 *                 which case any move failure stops processing
 	 */
 	public void processFiles(ProcessProgressListener listener) {
 		List<FileEntry> filesEntries = analysisResult.getFilesEntries();

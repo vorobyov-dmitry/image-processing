@@ -18,6 +18,12 @@ import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.border.TitledBorder;
 
+/**
+ * A titled panel with a read-only text field showing the current
+ * path(s) and a button that opens a {@link JFileChooser} to change the
+ * selection. Used for both the source (files/directories, multi-select) and
+ * destination (single directory) pickers in {@link Application}.
+ */
 public class SelectFilePanel extends JPanel {
 
 	private File file = null;
@@ -28,7 +34,15 @@ public class SelectFilePanel extends JPanel {
 			.createTitledBorder("Select dir/files");
 	private boolean multiSelectionEnabled = true;
 	private int fileSelectionMode = JFileChooser.FILES_AND_DIRECTORIES;
-	private File[] openedFiles = new File[0]; 
+	private File[] openedFiles = new File[0];
+
+	/**
+	 * Builds the panel with its default title ("Select dir/files"), an empty
+	 * path field and a "Select directory/files" button. Multi-selection of
+	 * both files and directories is enabled by default; use
+	 * {@link #setMultiSelectionEnabled} and {@link #setFileSelectionMode} to
+	 * change that before the panel is shown.
+	 */
 	public SelectFilePanel() {
 		setBorder(border);
 		setLayout(new GridBagLayout());
@@ -111,10 +125,23 @@ public class SelectFilePanel extends JPanel {
 		}
 	}
 
+	/**
+	 * @return the first selected file/directory, or {@code null} if nothing
+	 *         has been selected yet. Despite the name, this returns whatever
+	 *         was picked (file or directory) — callers using this panel as a
+	 *         directory-only picker are expected to restrict the choice via
+	 *         {@link #setFileSelectionMode(int)}.
+	 */
 	public File getDestinationDirectory() {
 		return file;
 	}
 
+	/**
+	 * Demonstrates the panel standalone in its own {@link JFrame}, centered
+	 * on screen.
+	 *
+	 * @param args unused
+	 */
 	public static void main(String[] args) {
 		JFrame frame = new JFrame();
 		SelectFilePanel selectFilePanel = new SelectFilePanel();
@@ -129,18 +156,45 @@ public class SelectFilePanel extends JPanel {
 
 	}
 
+	/**
+	 * @param title text shown on the panel's titled border, replacing the
+	 *              default "Select dir/files"
+	 */
 	public void setTitleBorder(String title) {
 		this.border.setTitle(title);
 	}
 
+	/**
+	 * Controls whether the {@link JFileChooser} opened by the panel's button
+	 * allows selecting more than one file/directory at once. Must be called
+	 * before the user opens the chooser.
+	 *
+	 * @param multiSelectionEnabled {@code true} to allow multiple selections
+	 */
 	public void setMultiSelectionEnabled(boolean multiSelectionEnabled) {
 		this.multiSelectionEnabled = multiSelectionEnabled;
 	}
 
+	/**
+	 * Controls what kind of entries the {@link JFileChooser} opened by the
+	 * panel's button allows selecting. Must be called before the user opens
+	 * the chooser.
+	 *
+	 * @param fileSelectionMode one of {@link JFileChooser#FILES_ONLY},
+	 *                          {@link JFileChooser#DIRECTORIES_ONLY} or
+	 *                          {@link JFileChooser#FILES_AND_DIRECTORIES}
+	 */
 	public void setFileSelectionMode(int fileSelectionMode) {
 		this.fileSelectionMode = fileSelectionMode;
 	}
 
+	/**
+	 * Pre-selects a path without opening the file chooser, e.g. to restore a
+	 * previously saved directory on startup. Does nothing if the path does
+	 * not exist.
+	 *
+	 * @param fileName path of the file/directory to pre-select
+	 */
 	public void setDir(String fileName) {
 		File fileTemp = new File(fileName);
 		if (fileTemp.exists()) {
@@ -150,6 +204,10 @@ public class SelectFilePanel extends JPanel {
 		}
 	}
 
+	/**
+	 * @return every file/directory currently selected in the panel, or
+	 *         {@code null} if nothing has been selected yet
+	 */
 	public File[] getSelectedFiles() {
 		return selectedFiles;
 	}

@@ -75,10 +75,8 @@ public class Report extends JFrame {
 		STATE_ICONS.put(FileDestination.NEW, loadIcon("icons/check-square_green.png"));
 		STATE_ICONS.put(FileDestination.IGNORED, loadIcon("icons/frown.png"));
 		STATE_ICONS.put(FileDestination.ERROR, loadIcon("icons/close-square_red.png"));
-		STATE_ICONS.put(FileDestination.DATE_DIFF, loadIcon("icons/exif_date.png"));
 	}
 
-	private static final ImageIcon EXIF_UNKNOWN_ICON = loadIcon("icons/check-square.png");
 	private static final ImageIcon EXIF_MISMATCH_ICON = loadIcon("icons/check-square_red.png");
 
 	private static final Map<FileDestination, String> STATE_LABELS = new EnumMap<>(FileDestination.class);
@@ -87,7 +85,6 @@ public class Report extends JFrame {
 		STATE_LABELS.put(FileDestination.EXIST, "Exists");
 		STATE_LABELS.put(FileDestination.IGNORED, "Ignored");
 		STATE_LABELS.put(FileDestination.ERROR, "Errors");
-		STATE_LABELS.put(FileDestination.DATE_DIFF, "Date dif");
 	}
 
 	private static ImageIcon loadIcon(String resourcePath) {
@@ -115,6 +112,11 @@ public class Report extends JFrame {
 	private Controller controller;
 	private AnalysisResult lastAnalysisResult;
 
+	/**
+	 * Builds the window (source/destination labels, volumes, table and
+	 * Save/Print/Process buttons) but does not show it. Call
+	 * {@link #showReport} to populate and display it.
+	 */
 	public Report() {
 		setTitle("Analysis report");
 		setLayout(new BorderLayout());
@@ -349,6 +351,17 @@ public class Report extends JFrame {
 		return buttonsPanel;
 	}
 
+	/**
+	 * Populates the table and header from {@code analysisResult} and shows
+	 * the window. Entries are sorted by destination path then source path;
+	 * per-{@link FileDestination} volumes are computed and shown above the
+	 * table. Also enables Save and Print (Process stays as previously set by
+	 * {@link #setEnabledProcessButton} / {@link #setController}).
+	 *
+	 * @param analysisResult the result to display; becomes the source of
+	 *                       truth for subsequent {@link #saveReport()} and
+	 *                       {@link #printReport()} calls
+	 */
 	public void showReport(AnalysisResult analysisResult) {
 		this.lastAnalysisResult = analysisResult;
 		sourceDirLabel.setText("Source dir " + analysisResult.getSourceDirectory());
@@ -427,14 +440,14 @@ public class Report extends JFrame {
 
 	private ImageIcon formatExif(Boolean exifDate) {
 		if (exifDate == null) {
-			return EXIF_UNKNOWN_ICON;
+			return null;
 		}
 		return exifDate ? null : EXIF_MISMATCH_ICON;
 	}
 
 	private String formatImageType(ImageType imageType) {
-		if (imageType == null) {
-			return "NULL";
+		if (imageType == null || 'N' == imageType.name().charAt(0)) {
+			return null;
 		}
 		return imageType.name().substring(0, 1);
 	}
@@ -442,7 +455,7 @@ public class Report extends JFrame {
 	private String formatDestination(FileEntry fileEntry, String destinationDirectory) {
 		File destination = fileEntry.getDestination();
 		if (destination == null) {
-			return "NULL";
+			return null;
 		}
 		String parent = destination.getParent();
 		if (destinationDirectory != null && parent.startsWith(destinationDirectory)) {
@@ -450,10 +463,26 @@ public class Report extends JFrame {
 		}
 		return parent;
 	}
+	/**
+	 * Enables or disables the Process button directly, independent of
+	 * whether a {@link Controller} has been set. Useful for a read-only
+	 * report (e.g. an "analyze only" view) where processing should stay
+	 * disabled even though a controller exists.
+	 *
+	 * @param enabled {@code true} to enable the Process button
+	 */
 	public  void setEnabledProcessButton(boolean enabled){
 		this.process.setEnabled(enabled);
 	}
 
+	/**
+	 * Supplies the {@link Controller} used to actually move files when the
+	 * Process button is clicked. Without a controller, clicking Process does
+	 * nothing.
+	 *
+	 * @param controller the controller whose {@link Controller#processFiles}
+	 *                   will be invoked
+	 */
 	public void setController(Controller controller) {
 		this.controller=controller;
 	}

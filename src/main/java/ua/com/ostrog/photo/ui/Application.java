@@ -42,6 +42,11 @@ public class Application extends JFrame {
 
 	private final Controller controller = new Controller();
 
+	/**
+	 * Restores the last-used source/destination directories from user
+	 * preferences and builds the UI. Call {@link #showApplication()}
+	 * afterwards to display the window.
+	 */
 	public Application() {
 		restoreSavedSettings();
 		buildUi();
@@ -124,6 +129,12 @@ public class Application extends JFrame {
 		this.setTitle(versionOfProduct);
 	}
 
+	/**
+	 * Application entry point. Creates and shows the main window, and saves
+	 * the current source/destination directories to user preferences on close.
+	 *
+	 * @param args unused
+	 */
 	public static void main(String[] args) {
 		Application application = new Application();
 		application.showApplication();
