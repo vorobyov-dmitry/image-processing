@@ -15,7 +15,7 @@ import ua.com.ostrog.photo.logic.Controller;
 public class Application extends JFrame {
 	private static final long serialVersionUID = -423490175756620363L;
 
-	public static final String versionOfProduct = "photo v.3.03";
+	public static final String versionOfProduct = "photo v.4.00";
 
 	private static final String SORT_PHOTOS_TAB_TITLE = "Sort Photos";
 	private static final String CONSISTENCY_TAB_TITLE = "Consistency";
