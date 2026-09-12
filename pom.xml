@@ -22,6 +22,7 @@
     <commons-imaging.version>1.0.0-alpha6</commons-imaging.version>
     <junit.version>5.11.3</junit.version>
     <openpdf.version>3.0.5</openpdf.version>
+    <sqlite-jdbc.version>3.53.4.0</sqlite-jdbc.version>
   </properties>
 
   <!-- Everything resolves from Maven Central. -->
@@ -35,6 +36,11 @@
       <groupId>com.github.librepdf</groupId>
       <artifactId>openpdf</artifactId>
       <version>${openpdf.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.xerial</groupId>
+      <artifactId>sqlite-jdbc</artifactId>
+      <version>${sqlite-jdbc.version}</version>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>

@@ -70,7 +70,7 @@ the directory destination is removed
 
 ### Testing IMAGE
 
-#### Test Case 1 All is Ok with input Data for image files 
+#### Test Case 1 All is Ok with input Data for image and panorama files  files 
 use SmokeTest.zip for 1-st test 
 expected result for suffix (end) of the paths
 text_file.txt	null			
@@ -99,8 +99,9 @@ Check produced FileEntry
 the result of analyze - status new , exif true , correct value destination, ImageType = IMAGE except text_file.txt  . 
 
 #### Test Case 2 All is Ok with input Data but some files are present in destination 
-analyze source directory  and  copy randomly  half of file in destination (use process with array ) . Store that names .
-Run analysis again 
+Copy randomly  half of files (IMAGE and Panorama)  in destination (use process with array ) . Store that names .
+Run analysis  the status of copied files should be EXIST
+
 
 
 #### Test Case 3 All is Ok with input Data but another  files are present in destination 
